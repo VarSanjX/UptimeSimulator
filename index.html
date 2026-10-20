@@ -1,0 +1,422 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="UPTIME simulator for XY Critical Power: test 2030 revenue, IRR, NPV and payback against the ₹8,000 Cr gap. Cummins Redefine 2026, Team null exceed, IIM Indore.">
+<style>
+:root { color-scheme: light; padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; font: 14px/1.4 system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif; }
+img { max-width: 100%; }
+[hidden] { display: none !important; }
+</style>
+<title>UPTIME Simulator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@500;600;700&family=Source+Sans+3:wght@400;600;700&display=swap">
+<style>
+/* Layout: control-room console. Drivers on the left, live verdict and gauges on the right; a second tab for one customer site. */
+:root {
+  --bg: #F3F6F9; --surface: #FFFFFF; --sunk: #EAF1F6; --ink: #1F2A36; --muted: #5B6B7A; --line: #D3DEE7;
+  --navy: #0B3C5D; --blue: #005C8B; --teal: #1A8FC4; --sky: #5B9BC0; --gold: #E2A400; --goldsoft: #FFF3CC;
+  --good: #23784A; --goodsoft: #DDF0E4; --bad: #B01E23; --badsoft: #FBE3E3; --track: #E3EAF0;
+  --display: "Barlow Semi Condensed", "Arial Narrow", Arial, sans-serif;
+  --body: "Source Sans 3", "Segoe UI", Arial, sans-serif;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #0C141C; --surface: #132130; --sunk: #0F1B27; --ink: #E4ECF2; --muted: #9AACBC; --line: #24384B;
+  --navy: #7FB8DA; --blue: #4FA3D6; --teal: #4CB8E6; --sky: #8CC0DE; --gold: #FFD25A; --goldsoft: #3A3016;
+  --good: #5CC489; --goodsoft: #15301F; --bad: #FF7B7F; --badsoft: #3A1A1C; --track: #1E3142; color-scheme: dark; } }
+:root[data-theme="dark"] {
+  --bg: #0C141C; --surface: #132130; --sunk: #0F1B27; --ink: #E4ECF2; --muted: #9AACBC; --line: #24384B;
+  --navy: #7FB8DA; --blue: #4FA3D6; --teal: #4CB8E6; --sky: #8CC0DE; --gold: #FFD25A; --goldsoft: #3A3016;
+  --good: #5CC489; --goodsoft: #15301F; --bad: #FF7B7F; --badsoft: #3A1A1C; --track: #1E3142; color-scheme: dark; }
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font-family: var(--body); font-size: 15px; line-height: 1.45;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 20px 32px; }
+.wrap { max-width: 1180px; margin: 0 auto; display: flex; flex-direction: column; gap: 18px; }
+header { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 12px; }
+.brand { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.eyebrow { font-family: var(--display); font-weight: 600; letter-spacing: .12em; text-transform: uppercase; font-size: 12px; color: var(--muted); }
+h1 { font-family: var(--display); font-weight: 700; font-size: 30px; line-height: 1.05; margin: 0; color: var(--ink); text-wrap: balance; }
+h1 .u { color: var(--gold); }
+.sub { color: var(--muted); font-size: 14px; margin: 0; max-width: 62ch; }
+.tabs { display: flex; gap: 6px; background: var(--sunk); padding: 4px; border-radius: 10px; border: 1px solid var(--line); }
+.tab { font: 600 14px var(--body); border: 0; background: transparent; color: var(--muted); padding: 8px 14px; border-radius: 7px; cursor: pointer; }
+.tab[aria-selected="true"] { background: var(--surface); color: var(--ink); box-shadow: 0 1px 2px rgba(0,0,0,.08); }
+.tab:focus-visible, button:focus-visible, input:focus-visible { outline: 2px solid var(--teal); outline-offset: 2px; }
+.grid { display: grid; grid-template-columns: minmax(0, 360px) minmax(0, 1fr); gap: 18px; align-items: start; }
+@media (max-width: 860px) { .grid { grid-template-columns: minmax(0, 1fr); } }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 16px; min-width: 0; }
+.panel h2 { font-family: var(--display); font-weight: 600; font-size: 17px; margin: 0 0 4px; letter-spacing: .01em; }
+.panel .hint { color: var(--muted); font-size: 13px; margin: 0 0 12px; }
+.presets { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
+.preset { font: 600 13px var(--body); border: 1px solid var(--line); background: var(--sunk); color: var(--ink); padding: 6px 10px; border-radius: 999px; cursor: pointer; }
+.preset[aria-pressed="true"] { background: var(--navy); color: var(--surface); border-color: var(--navy); }
+.group { border-top: 1px solid var(--line); padding-top: 10px; margin-top: 10px; display: flex; flex-direction: column; gap: 10px; }
+.group-title { display: flex; align-items: center; gap: 8px; font-family: var(--display); font-weight: 600; font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.chip { display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; background: var(--navy); color: var(--gold); font: 700 12px var(--display); letter-spacing: 0; }
+.field { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 10px; align-items: baseline; }
+.field label { font-size: 14px; font-weight: 600; }
+.field output { font-variant-numeric: tabular-nums; font-weight: 700; color: var(--blue); font-size: 14px; }
+.field small { grid-column: 1 / -1; color: var(--muted); font-size: 12px; }
+input[type="range"] { grid-column: 1 / -1; width: 100%; accent-color: var(--blue); margin: 2px 0 0; }
+.verdict { display: flex; flex-wrap: wrap; align-items: center; gap: 14px; padding: 14px 16px; border-radius: 12px; border: 1px solid var(--line); background: var(--surface); }
+.verdict .big { font-family: var(--display); font-weight: 700; font-size: 40px; line-height: 1; font-variant-numeric: tabular-nums; }
+.verdict .lab { color: var(--muted); font-size: 13px; }
+.pill { font: 700 13px var(--body); padding: 5px 10px; border-radius: 999px; }
+.pill.ok { background: var(--goodsoft); color: var(--good); }
+.pill.no { background: var(--badsoft); color: var(--bad); }
+.pill.warn { background: var(--goldsoft); color: var(--ink); }
+.kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+@media (max-width: 620px) { .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.kpi { background: var(--sunk); border-radius: 10px; padding: 10px 12px; min-width: 0; }
+.kpi .v { font-family: var(--display); font-weight: 700; font-size: 24px; font-variant-numeric: tabular-nums; color: var(--ink); }
+.kpi .k { color: var(--muted); font-size: 12px; }
+.chart { width: 100%; height: auto; display: block; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 13px; color: var(--muted); }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.legend i { width: 10px; height: 10px; border-radius: 2px; display: inline-block; }
+.note { color: var(--muted); font-size: 12px; margin: 0; }
+.rows { display: flex; flex-direction: column; gap: 6px; }
+.row { display: grid; grid-template-columns: 150px minmax(0, 1fr) 56px; gap: 10px; align-items: center; font-size: 14px; }
+.row .bar { height: 14px; background: var(--track); border-radius: 3px; position: relative; overflow: hidden; }
+.row .bar b { position: absolute; top: 0; bottom: 0; border-radius: 3px; }
+.row .num { text-align: right; font-weight: 700; font-variant-numeric: tabular-nums; }
+.row.total { font-weight: 700; border-top: 1px solid var(--line); padding-top: 6px; }
+@media (max-width: 480px) { .row { grid-template-columns: 110px minmax(0, 1fr) 48px; font-size: 13px; } }
+footer { color: var(--muted); font-size: 12px; }
+@media (prefers-reduced-motion: no-preference) { .anim { transition: width .25s ease, x .25s ease; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="brand">
+      <span class="eyebrow">XY Critical Power · Team null exceed, IIM Indore · prototype</span>
+      <h1><span class="u">UPTIME</span> Simulator</h1>
+      <p class="sub">Move any driver and see whether XY still closes the ₹8,000 Cr gap by 2030. The Base case matches the deck's Appendix A1–A5: ₹8,509 Cr, ~22% IRR, payback in 2031.</p>
+    </div>
+    <div class="tabs" role="tablist" aria-label="View">
+      <button class="tab" role="tab" id="tab-board" aria-selected="true" aria-controls="view-board">Board view</button>
+      <button class="tab" role="tab" id="tab-site" aria-selected="false" aria-controls="view-site">One customer site</button>
+    </div>
+  </header>
+
+  <section id="view-board" role="tabpanel" aria-labelledby="tab-board">
+    <div class="grid">
+      <div class="panel" aria-label="Drivers">
+        <h2>Drivers for 2030</h2>
+        <p class="hint">Start from a scenario, then move the sliders.</p>
+        <div class="presets" role="group" aria-label="Scenario">
+          <button class="preset" id="p-pess" aria-pressed="false">Pessimistic</button>
+          <button class="preset" id="p-base" aria-pressed="true">Base plan</button>
+          <button class="preset" id="p-opt" aria-pressed="false">Optimistic</button>
+        </div>
+        <div id="drivers"></div>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:14px;min-width:0">
+        <div class="verdict" aria-live="polite">
+          <div>
+            <div class="big" id="v-total">₹8,509 Cr</div>
+            <div class="lab">new revenue in 2030</div>
+          </div>
+          <span class="pill ok" id="v-pill">Closes the gap</span>
+          <div class="lab" id="v-detail">₹8,159 Cr after lost spare-parts sales: 102% of the ₹8,000 Cr gap</div>
+        </div>
+
+        <div class="panel">
+          <h2>What fills the gap</h2>
+          <p class="hint">Revenue in 2030 by UPTIME letter, against the ₹8,000 Cr gap.</p>
+          <svg class="chart" id="gapchart" viewBox="0 0 760 120" role="img" aria-label="Stacked bar of 2030 revenue against the gap"></svg>
+          <div class="legend" id="gaplegend"></div>
+        </div>
+
+        <div class="kpis">
+          <div class="kpi"><div class="v" id="k-ebitda">₹1,509 Cr</div><div class="k">EBITDA 2030 · <span id="k-margin">17.7%</span></div></div>
+          <div class="kpi"><div class="v" id="k-irr">22.0%</div><div class="k">IRR to XY, 10 years, no terminal value</div></div>
+          <div class="kpi"><div class="v" id="k-npv">₹4,268 Cr</div><div class="k">NPV at 12%, with terminal value</div></div>
+          <div class="kpi"><div class="v" id="k-pay">2031</div><div class="k">payback before tax · <span id="k-pay2">2032</span> after</div></div>
+        </div>
+
+        <div class="panel">
+          <h2>Revenue ramp, 2026–2030</h2>
+          <p class="hint">Each year follows the phase-gate ramp; investment is ₹<span id="k-inv">2,399</span> Cr over 2026–30.</p>
+          <svg class="chart" id="rampchart" viewBox="0 0 760 210" role="img" aria-label="Revenue by year"></svg>
+          <p class="note" id="feewarn"></p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="view-site" role="tabpanel" aria-labelledby="tab-site" hidden>
+    <div class="grid">
+      <div class="panel" aria-label="Site inputs">
+        <h2>A customer site</h2>
+        <p class="hint">A data centre, plant or hospital that buys power as a service (T) instead of owning a genset.</p>
+        <div id="siteinputs"></div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:14px;min-width:0">
+        <div class="verdict" aria-live="polite">
+          <div>
+            <div class="big" id="s-keep">₹0.10 Cr</div>
+            <div class="lab">the customer keeps per MW a year</div>
+          </div>
+          <span class="pill ok" id="s-pill">Worth signing</span>
+          <div class="lab" id="s-detail">plus no upfront capex and a 99.99% uptime promise</div>
+        </div>
+        <div class="panel">
+          <h2>Value against the fee, per MW a year</h2>
+          <p class="hint">₹ Cr per MW of backed-up load, per year.</p>
+          <div class="rows" id="siterows"></div>
+        </div>
+        <div class="kpis">
+          <div class="kpi"><div class="v" id="s-site">₹1.0 Cr</div><div class="k">kept by the whole site a year</div></div>
+          <div class="kpi"><div class="v" id="s-capex">₹45 Cr</div><div class="k">capex the site avoids</div></div>
+          <div class="kpi"><div class="v" id="s-fee">₹9.0 Cr</div><div class="k">fee the site pays XY a year</div></div>
+          <div class="kpi"><div class="v" id="s-10y">₹10 Cr</div><div class="k">kept over a 10-year contract</div></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <footer>Prototype for the Cummins Redefine 2026 campus round. XY Corp and its figures are fictional (per the case); Cummins India data serve only as a proxy. Every formula follows the calculations in Appendix A1–A5 of the deck. Value per MW: diesel ₹15–22/kWh, peak charges ₹200–350/kVA/month, cheaper-hour spread ₹1.5–2.5/kWh (DC&amp;T Global).</footer>
+</div>
+<script>
+// UPTIME business-case engine: same calculations as the deck's Appendix A1–A5
+const BASE = { dc: 2000, dcShare: 0.35, bessMwh: 1, bessPrice: 1.2, sw: 0.8, ciGwh: 5, ciPrice: 1.5, retro: 1500, ciShare: 0.22,
+  expGwh: 1.35, expPrice: 1.5, fleet: 500, fee: 7.5, om: 0.15, debt: 0.7, xyShare: 0.51, kd: 0.09, tenor: 10, kits: 170, kitPrice: 4.5,
+  ltsa: 0.04, conn: 100000, connFee: 25000, upt: 40000, uptFee: 2, gensetMw: 2.0, bundle: 0.10, mGen: 0.15, mInt: 0.11, mKits: 0.14, mSvc: 0.25,
+  cannib: 350, g: 0.08, tax: 0.25, sustain: 0.04, wacc: 0.12, gt: 0.04 };
+const RA = [0.0265, 0.1435, 0.3532, 0.6512, 1], RB = [0, 0.05, 0.2, 0.55, 1], RC = [0.024, 0.12, 0.36, 0.64, 1];
+const LAUNCH = [50, 80, 60, 40, 0];
+const INV_FIXED = { pack: [0, 150, 150, 100, 0], buy: [700, 0, 0, 0, 0], rnd: [60, 60, 60, 60, 60], bu: [50, 50, 40, 30, 30], wc: [10, 60, 120, 140, 125] };
+const SPV_PHASE = [0, 0.2, 0.3, 0.3, 0.2];
+const sum = a => a.reduce((x, y) => x + y, 0);
+function irr(cf) { let lo = -0.99, hi = 5; const npv = r => cf.reduce((a, c, i) => a + c / Math.pow(1 + r, i), 0);
+  if (npv(lo) * npv(hi) > 0) return NaN; for (let k = 0; k < 200; k++) { const m = (lo + hi) / 2; if (npv(lo) * npv(m) <= 0) hi = m; else lo = m; } return (lo + hi) / 2; }
+function run(p) {
+  const A1 = p.dc * (p.bessMwh * p.bessPrice + p.sw) * p.dcShare;
+  const A2 = (p.ciGwh * 1000 * p.ciPrice + p.retro) * p.ciShare;
+  const A3 = p.expGwh * 1000 * p.expPrice;
+  const A4 = p.dc * p.gensetMw * p.bundle;
+  const B1 = p.fleet * p.fee * 12 / 100;
+  const B2 = p.kits * p.kitPrice;
+  const C1 = ((A1 + A2) * sum(RA) + B2 * sum(RB) + p.fleet * p.kitPrice) * p.ltsa;
+  const C2 = p.conn * p.connFee / 1e7, C3 = p.upt * p.uptFee / 100;
+  const PA = A1 + A2 + A3 + A4, PB = B1 + B2, PC = C1 + C2 + C3, total = PA + PB + PC;
+  const EA = (PA - A4) * p.mInt + A4 * p.mGen, EB1 = B1 - p.fleet * p.om, EB2 = B2 * p.mKits, EC = PC * p.mSvc;
+  const ebitda = EA + EB1 + EB2 + EC;
+  const mA = PA ? EA / PA : 0, mB = PB ? (EB1 + EB2) / PB : 0, mC = p.mSvc;
+  const pmt = p.kd / (1 - Math.pow(1 + p.kd, -p.tenor));
+  const yrs = [], rev = [], op = [], inv = [], pre = [];
+  for (let j = 0; j < 5; j++) {
+    const rA = PA * RA[j], rB = PB * RB[j], rC = PC * RC[j];
+    const e = rA * mA + rB * mB + rC * mC - LAUNCH[j];
+    const fy = p.fleet * RB[j], b1e = B1 * RB[j] - fy * p.om, ds = fy * p.kitPrice * p.debt * pmt;
+    const xs = (b1e - ds) * p.xyShare, xo = e - b1e, tx = Math.max(0, xo) * p.tax;
+    const iv = INV_FIXED.pack[j] + INV_FIXED.buy[j] + INV_FIXED.rnd[j] + INV_FIXED.bu[j] + INV_FIXED.wc[j] + p.fleet * p.kitPrice * (1 - p.debt) * p.xyShare * SPV_PHASE[j];
+    rev.push(rA + rB + rC); op.push(xo + xs - tx); inv.push(iv); pre.push(xo + xs);
+  }
+  for (let j = 5; j < 10; j++) { rev.push(rev[j - 1] * (1 + p.g)); op.push(op[j - 1] * (1 + p.g)); inv.push(rev[j] * p.sustain); pre.push(pre[j - 1] * (1 + p.g)); }
+  const fcfNoTV = op.map((o, j) => o - inv[j]);
+  const tv = (op[9] - inv[9]) * (1 + p.gt) / (p.wacc - p.gt);
+  const fcf = fcfNoTV.map((f, j) => f + (j === 9 ? tv : 0));
+  const npv = fcf.reduce((a, c, i) => a + c / Math.pow(1 + p.wacc, i + 1), 0);
+  let cum = 0, pay = null, cumT = 0, payT = null;
+  for (let j = 0; j < 10; j++) { cum += pre[j] - inv[j]; if (pay === null && cum >= 0) pay = 2026 + j; cumT += fcfNoTV[j]; if (payT === null && cumT >= 0) payT = 2026 + j; }
+  return { lines: { A1, A2, A3, A4, B1, B2, C1, C2, C3 }, U: PC, P: A1 + A2 + A4, T: PB, I: A3, total, net: total - p.cannib, ebitda, margin: total ? ebitda / total : 0,
+    invest: sum(inv.slice(0, 5)), irrNoTV: irr(fcfNoTV), irrTV: irr(fcf), npv, payback: pay, paybackAfterTax: payT, rev };
+}
+
+const PRESETS = {
+  base: {},
+  pess: { dc: 800, dcShare: 0.30, bundle: 0.05, ciShare: 0.15, expGwh: 0.5, fleet: 250, kits: 80, upt: 20000, cannib: 400, g: 0.06 },
+  opt: { dc: 2500, dcShare: 0.35, bundle: 0.10, ciShare: 0.25, expGwh: 1.7, fleet: 800, kits: 250, upt: 50000, cannib: 300, g: 0.10 },
+};
+const DRIVERS = [
+  { group: "Data centres", L: "P", items: [
+    { k: "dc", label: "New data-centre load in 2030", min: 500, max: 3000, step: 100, fmt: v => (v / 1000).toFixed(1) + " GW", note: "Forecasts: 4–12 GW installed by 2030 (CareEdge, Wood Mackenzie)" },
+    { k: "dcShare", label: "XY share of the system scope", min: 0.2, max: 0.45, step: 0.01, fmt: v => Math.round(v * 100) + "%", note: "Anchored on XY's data-centre genset lead" },
+    { k: "bundle", label: "Extra genset share from bundled bids", min: 0, max: 0.15, step: 0.01, fmt: v => Math.round(v * 100) + " pts", note: "Gensets won because XY bids the whole system" } ] },
+  { group: "Factories and hospitals", L: "P", items: [
+    { k: "ciShare", label: "XY share of the ₹9,000 Cr hybrid pool", min: 0.1, max: 0.3, step: 0.01, fmt: v => Math.round(v * 100) + "%", note: "5 GWh of on-site batteries + ₹1,500 Cr of retrofits" } ] },
+  { group: "India export hub", L: "I", items: [
+    { k: "expGwh", label: "Battery packs exported via XY's global network", min: 0, max: 2, step: 0.05, fmt: v => v.toFixed(2) + " GWh", note: "1.35 GWh assumes XY makes India its global battery hub" } ] },
+  { group: "Power-as-a-Service", L: "T", items: [
+    { k: "fleet", label: "Fleet owned by the T company", min: 0, max: 1000, step: 50, fmt: v => v + " MW", note: "Grows only after each phase gate" },
+    { k: "fee", label: "Monthly fee per MW", min: 5, max: 10, step: 0.25, fmt: v => "₹" + v.toFixed(2) + " lakh", note: "Customer value is ~₹8.3 lakh per MW a month" } ] },
+  { group: "Uptime services", L: "U", items: [
+    { k: "upt", label: "Gensets on uptime contracts", min: 10000, max: 60000, step: 1000, fmt: v => (v / 1000).toFixed(0) + ",000", note: "Incl. CPCB IV+ gensets leaving warranty" } ] },
+];
+let P = Object.assign({}, BASE);
+const $ = id => document.getElementById(id);
+const cr = v => "₹" + Math.round(v).toLocaleString("en-IN") + " Cr";
+const COLORS = { U: "var(--navy)", P: "var(--blue)", T: "var(--teal)", I: "var(--sky)" };
+const NAMES = { U: "Uptime services", P: "Power islands", T: "Power-as-a-Service", I: "India export hub" };
+
+function buildDrivers() {
+  const host = $("drivers");
+  host.innerHTML = "";
+  DRIVERS.forEach(g => {
+    const box = document.createElement("div"); box.className = "group";
+    box.innerHTML = `<div class="group-title"><span class="chip">${g.L}</span>${g.group}</div>`;
+    g.items.forEach(d => {
+      const f = document.createElement("div"); f.className = "field";
+      f.innerHTML = `<label for="in-${d.k}">${d.label}</label><output id="out-${d.k}" for="in-${d.k}"></output>
+        <input type="range" id="in-${d.k}" min="${d.min}" max="${d.max}" step="${d.step}" value="${P[d.k]}">
+        <small>${d.note}</small>`;
+      box.appendChild(f);
+      f.querySelector("input").addEventListener("input", e => { P[d.k] = parseFloat(e.target.value); markPreset(null); render(); });
+    });
+    host.appendChild(box);
+  });
+}
+function syncInputs() { DRIVERS.forEach(g => g.items.forEach(d => { $("in-" + d.k).value = P[d.k]; $("out-" + d.k).textContent = d.fmt(P[d.k]); })); }
+function markPreset(id) { ["p-pess", "p-base", "p-opt"].forEach(x => $(x).setAttribute("aria-pressed", String(x === id))); }
+function applyPreset(name, id) { P = Object.assign({}, BASE, PRESETS[name]); markPreset(id); syncInputs(); render(); }
+
+function svgEl(tag, attrs, text) { const e = document.createElementNS("http://www.w3.org/2000/svg", tag); for (const k in attrs) e.setAttribute(k, attrs[k]); if (text !== undefined) e.textContent = text; return e; }
+
+function drawGap(r) {
+  const s = $("gapchart"); s.innerHTML = "";
+  const X0 = 10, W = 740, MAX = 12000, sc = W / MAX, y = 34, h = 46;
+  s.appendChild(svgEl("rect", { x: X0, y, width: W, height: h, rx: 4, style: "fill:var(--track)" }));
+  let x = X0;
+  ["U", "P", "T", "I"].forEach(L => {
+    const w = r[L] * sc;
+    s.appendChild(svgEl("rect", { x, y, width: Math.max(0, w), height: h, style: `fill:${COLORS[L]}`, class: "anim" }));
+    if (w > 52) {
+      s.appendChild(svgEl("text", { x: x + w / 2, y: y + 19, "text-anchor": "middle", style: "fill:#fff;font:700 14px var(--display)" }, L));
+      s.appendChild(svgEl("text", { x: x + w / 2, y: y + 36, "text-anchor": "middle", style: "fill:#fff;font:600 13px var(--body)" }, Math.round(r[L]).toLocaleString("en-IN")));
+    }
+    x += w;
+  });
+  const gx = X0 + 8000 * sc;
+  s.appendChild(svgEl("line", { x1: gx, x2: gx, y1: 16, y2: y + h + 8, style: "stroke:var(--bad);stroke-width:2;stroke-dasharray:5 4" }));
+  s.appendChild(svgEl("text", { x: gx - 6, y: 24, "text-anchor": "end", style: "fill:var(--bad);font:700 13px var(--body)" }, "gap ₹8,000 Cr"));
+  const tx = Math.min(X0 + r.total * sc, X0 + W - 2);
+  s.appendChild(svgEl("text", { x: tx, y: y + h + 26, "text-anchor": tx > X0 + W - 120 ? "end" : "middle", style: "fill:var(--ink);font:700 14px var(--body)" }, cr(r.total)));
+  s.appendChild(svgEl("text", { x: X0, y: y + h + 26, style: "fill:var(--muted);font:12px var(--body)" }, "₹ Cr in 2030 · scale to ₹12,000 Cr"));
+  const lg = $("gaplegend"); lg.innerHTML = "";
+  ["U", "P", "T", "I"].forEach(L => { const sp = document.createElement("span"); sp.innerHTML = `<i style="background:${COLORS[L]}"></i>${L} · ${NAMES[L]} · ${cr(r[L])}`; lg.appendChild(sp); });
+}
+
+function drawRamp(r, p) {
+  const s = $("rampchart"); s.innerHTML = "";
+  const top = 14, bot = 176, H = bot - top, MAX = 12000, sc = H / MAX, x0 = 54, bw = 92, gap = 52;
+  [0, 4000, 8000, 12000].forEach(v => {
+    const yy = bot - v * sc;
+    s.appendChild(svgEl("line", { x1: x0 - 6, x2: 740, y1: yy, y2: yy, style: `stroke:var(--line);stroke-width:1${v === 8000 ? "" : ""}` }));
+    s.appendChild(svgEl("text", { x: x0 - 10, y: yy + 4, "text-anchor": "end", style: "fill:var(--muted);font:12px var(--body)" }, (v / 1000).toFixed(0) + "k"));
+  });
+  const RAMPS = { P: RA, I: RA, T: RB, U: RC };
+  for (let j = 0; j < 5; j++) {
+    const x = x0 + 10 + j * (bw + gap); let yb = bot;
+    ["P", "I", "T", "U"].forEach(L => {
+      const v = r[L] * RAMPS[L][j], hh = v * sc;
+      s.appendChild(svgEl("rect", { x, y: yb - hh, width: bw, height: Math.max(0, hh), style: `fill:${COLORS[L]}` }));
+      yb -= hh;
+    });
+    const tot = r.rev[j];
+    s.appendChild(svgEl("text", { x: x + bw / 2, y: yb - 6, "text-anchor": "middle", style: "fill:var(--ink);font:700 13px var(--body)" }, Math.round(tot).toLocaleString("en-IN")));
+    s.appendChild(svgEl("text", { x: x + bw / 2, y: bot + 20, "text-anchor": "middle", style: "fill:var(--muted);font:600 13px var(--body)" }, String(2026 + j)));
+  }
+  const gy = bot - 8000 * sc;
+  s.appendChild(svgEl("line", { x1: x0 - 6, x2: 740, y1: gy, y2: gy, style: "stroke:var(--bad);stroke-width:1.5;stroke-dasharray:5 4" }));
+  s.appendChild(svgEl("text", { x: x0 + 4, y: gy - 6, "text-anchor": "start", style: "fill:var(--bad);font:700 12px var(--body)" }, "₹8,000 Cr gap"));
+}
+
+function render() {
+  syncInputs();
+  const r = run(P);
+  $("v-total").textContent = cr(r.total);
+  const net = r.net, pct = Math.round(net / 80);
+  const pill = $("v-pill");
+  if (net >= 8000) { pill.className = "pill ok"; pill.textContent = "Closes the gap"; }
+  else if (r.total >= 8000) { pill.className = "pill warn"; pill.textContent = "Closes it only before lost parts"; }
+  else { pill.className = "pill no"; pill.textContent = "Short by " + cr(8000 - net); }
+  $("v-detail").textContent = `${cr(net)} after lost spare-parts sales: ${pct}% of the ₹8,000 Cr gap`;
+  $("k-ebitda").textContent = cr(r.ebitda); $("k-margin").textContent = (r.margin * 100).toFixed(1) + "%";
+  $("k-irr").textContent = isFinite(r.irrNoTV) ? (r.irrNoTV * 100).toFixed(1) + "%" : "n/a";
+  $("k-npv").textContent = cr(r.npv);
+  $("k-pay").textContent = r.payback || "after 2035"; $("k-pay2").textContent = r.paybackAfterTax || "after 2035";
+  $("k-inv").textContent = Math.round(r.invest).toLocaleString("en-IN");
+  const feeCr = P.fee * 12 / 100;
+  $("feewarn").textContent = feeCr > 1.0 ? `Warning: a ₹${P.fee.toFixed(2)} lakh fee is ₹${feeCr.toFixed(2)} Cr a year, more than the ~₹1.00 Cr the system is worth to a customer per MW, so customers would not sign.` : `At ₹${P.fee.toFixed(2)} lakh per MW a month the customer pays ₹${feeCr.toFixed(2)} Cr a year for ~₹1.00 Cr of value.`;
+  drawGap(r); drawRamp(r, P);
+}
+
+// ---- One customer site ----
+const S = { mw: 10, diesel: 18, hours: 500, peak: 300, spread: 2, fee: 7.5 };
+const SITE = [
+  { k: "mw", label: "Backed-up load at the site", min: 1, max: 50, step: 1, fmt: v => v + " MW" },
+  { k: "diesel", label: "Diesel generation cost", min: 12, max: 25, step: 0.5, fmt: v => "₹" + v.toFixed(1) + "/kWh", note: "₹15–22/kWh typical (DC&T Global)" },
+  { k: "hours", label: "Genset run-hours a year that a battery can cover", min: 100, max: 1500, step: 50, fmt: v => v + " h", note: "Outages, load swings and peak hours" },
+  { k: "peak", label: "Peak-demand charge", min: 150, max: 450, step: 10, fmt: v => "₹" + v + "/kVA/month", note: "₹200–350 typical" },
+  { k: "spread", label: "Cheaper-hour (time-of-day) spread", min: 0.5, max: 4, step: 0.1, fmt: v => "₹" + v.toFixed(1) + "/kWh", note: "₹1.5–2.5 typical" },
+  { k: "fee", label: "Fee XY charges per MW a month", min: 5, max: 10, step: 0.25, fmt: v => "₹" + v.toFixed(2) + " lakh" },
+];
+function buildSite() {
+  const host = $("siteinputs"); host.innerHTML = "";
+  const box = document.createElement("div"); box.className = "group"; box.style.borderTop = "0"; box.style.marginTop = "0"; box.style.paddingTop = "0";
+  SITE.forEach(d => {
+    const f = document.createElement("div"); f.className = "field";
+    f.innerHTML = `<label for="si-${d.k}">${d.label}</label><output id="so-${d.k}" for="si-${d.k}"></output>
+      <input type="range" id="si-${d.k}" min="${d.min}" max="${d.max}" step="${d.step}" value="${S[d.k]}">${d.note ? `<small>${d.note}</small>` : ""}`;
+    box.appendChild(f);
+    f.querySelector("input").addEventListener("input", e => { S[d.k] = parseFloat(e.target.value); renderSite(); });
+  });
+  host.appendChild(box);
+}
+function renderSite() {
+  SITE.forEach(d => { $("so-" + d.k).textContent = d.fmt(S[d.k]); });
+  const v = [
+    ["Diesel saved", 0.5 * S.hours * S.diesel * 1000 / 1e7, "var(--navy)"],
+    ["Genset not bought", 1.3 * 0.1917, "var(--blue)"],
+    ["Lower peak charges", 500 * S.peak * 12 / 1e7, "var(--teal)"],
+    ["Cheaper-hour use", 2 * 300 * S.spread * 1000 / 1e7, "var(--gold)"],
+  ];
+  const value = v.reduce((a, x) => a + x[1], 0), fee = S.fee * 12 / 100, keep = value - fee;
+  const MAX = Math.max(1.6, value * 1.1);
+  const rows = $("siterows"); rows.innerHTML = "";
+  let cum = 0;
+  const add = (name, start, len, color, num, cls) => {
+    const r = document.createElement("div"); r.className = "row" + (cls ? " " + cls : "");
+    r.innerHTML = `<span>${name}</span><span class="bar"><b class="anim" style="left:${Math.max(0, start) / MAX * 100}%;width:${Math.abs(len) / MAX * 100}%;background:${color}"></b></span><span class="num">${num.toFixed(2)}</span>`;
+    rows.appendChild(r);
+  };
+  v.forEach(x => { add(x[0], cum, x[1], x[2], x[1]); cum += x[1]; });
+  add("Value to the customer", 0, value, "var(--navy)", value, "total");
+  add("Fee paid to XY", 0, fee, "var(--blue)", fee);
+  add(keep >= 0 ? "Customer keeps" : "Customer loses", keep >= 0 ? fee : value, keep, keep >= 0 ? "var(--good)" : "var(--bad)", keep);
+  $("s-keep").textContent = "₹" + keep.toFixed(2) + " Cr";
+  const pill = $("s-pill");
+  if (keep > 0.05) { pill.className = "pill ok"; pill.textContent = "Worth signing"; }
+  else if (keep >= 0) { pill.className = "pill warn"; pill.textContent = "Marginal: lower the fee"; }
+  else { pill.className = "pill no"; pill.textContent = "Fee too high"; }
+  $("s-detail").textContent = `${Math.round(keep / value * 100)}% of the value stays with the customer, plus no upfront capex and a 99.99% uptime promise`;
+  $("s-site").textContent = "₹" + (keep * S.mw).toFixed(1) + " Cr";
+  $("s-capex").textContent = "₹" + Math.round(4.5 * S.mw).toLocaleString("en-IN") + " Cr";
+  $("s-fee").textContent = "₹" + (fee * S.mw).toFixed(1) + " Cr";
+  $("s-10y").textContent = "₹" + Math.round(keep * S.mw * 10).toLocaleString("en-IN") + " Cr";
+}
+
+// ---- Tabs ----
+function show(which) {
+  const board = which === "board";
+  $("view-board").hidden = !board; $("view-site").hidden = board;
+  $("tab-board").setAttribute("aria-selected", String(board)); $("tab-site").setAttribute("aria-selected", String(!board));
+  try { localStorage.setItem("uptime-tab", which); } catch (e) {}
+}
+$("tab-board").addEventListener("click", () => show("board"));
+$("tab-site").addEventListener("click", () => show("site"));
+$("p-pess").addEventListener("click", () => applyPreset("pess", "p-pess"));
+$("p-base").addEventListener("click", () => applyPreset("base", "p-base"));
+$("p-opt").addEventListener("click", () => applyPreset("opt", "p-opt"));
+buildDrivers(); buildSite(); render(); renderSite();
+try { const t = location.hash === "#site" ? "site" : localStorage.getItem("uptime-tab"); if (t === "site") show("site"); } catch (e) {}
+</script>
+</body>
+</html>
